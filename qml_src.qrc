@@ -1,0 +1,19 @@
+<RCC>
+    <qresource prefix="/">
+        <file>include/IzSQLTableView/QML/IzSQLTableView.qml</file>
+        <file>res/svg/ic_bug_report_black_48px.svg</file>
+        <file>res/svg/ic_delete_black_48px.svg</file>
+        <file>res/svg/ic_sort_ascending_black_48px.svg</file>
+        <file>res/svg/ic_sort_descending_black_48px.svg</file>
+        <file>res/svg/ic_sort_disabled_black_48px.svg</file>
+        <file>res/svg/ic_stop_black_48px.svg</file>
+        <file>include/IzSQLTableView/QML/HeaderDelegate.qml</file>
+        <file>include/IzSQLTableView/QML/QuickSettings.qml</file>
+        <file>include/IzSQLTableView/QML/QuickSettingsSpinBox.qml</file>
+        <file>include/IzSQLTableView/QML/TableButton.qml</file>
+        <file>include/IzSQLTableView/QML/ExcelExportPopup.qml</file>
+        <file>include/IzSQLTableView/JS/ObjectCreator.js</file>
+        <file>include/IzSQLTableView/QML/ColumnsSettings.qml</file>
+        <file>include/IzSQLTableView/QML/ColumnsSettingsPopup.qml</file>
+    </qresource>
+</RCC>

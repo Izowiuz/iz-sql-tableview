@@ -1,0 +1,4 @@
+﻿module IzSQLTableView
+plugin IzSQLTableViewPlugin
+typeinfo IzSQLTableView.qmltypes
+classname QmlPlugin
