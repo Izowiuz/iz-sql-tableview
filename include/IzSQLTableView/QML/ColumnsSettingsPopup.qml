@@ -1,6 +1,7 @@
 ﻿import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
+
 import IzLibrary 1.0
 
 Popup {
@@ -18,6 +19,8 @@ Popup {
 	onClosed: {
 		root.destroy();
 	}
+
+	background: IzRectangle {}
 
 	ColumnLayout {
 		anchors.fill: parent
@@ -119,7 +122,7 @@ Popup {
 						text: columnWidth
 
 						onEditingFinished: {
-							root.headerModel.source.setData(0, index, text, "columnWidth");
+							root.headerModel.source.setColumnWidth(index, text);
 						}
 					}
 				}
@@ -141,7 +144,7 @@ Popup {
 							preventStealing: true
 
 							onReleased: {
-								root.headerModel.source.setData(0, index, "", "filterValue");
+								root.headerModel.source.setColumnFilter(index, "");
 							}
 						}
 					}
@@ -163,13 +166,14 @@ Popup {
 							preventStealing: true
 
 							onReleased: {
-								root.headerModel.source.setData(0, index, !parent.checked, "isVisible");
+								root.headerModel.source.setColumnVisibility(index, !parent.checked);
 							}
 						}
 					}
 				}
 
 			}
+
 			ScrollBar.vertical: ScrollBar {
 				minimumSize: 0.1
 				width: 5
@@ -183,25 +187,38 @@ Popup {
 
 		IzGroupBox {
 			Layout.fillWidth: true
-			Layout.preferredHeight: 70
+			Layout.fillHeight: true
+			Layout.maximumHeight: 120
 
-			title: qsTr("Filtr globalny kolumn: ") + root.globalFilterValue
+			title: qsTr("Globalny filtr kolumn")
 
-			RowLayout {
+			ColumnLayout {
 				anchors {
 					fill: parent
 					margins: 2
 				}
 
+				IzText {
+					Layout.fillWidth: true
+					Layout.preferredHeight: 30
+
+					text: qsTr("Aktualny filtr:") + root.globalFilterValue
+					wrapMode: Text.WrapAnywhere
+				}
+
+				MenuSeparator {
+					Layout.fillWidth: true
+				}
+
 				IzTextInput {
 					Layout.fillWidth: true
-					Layout.fillHeight: true
+					Layout.preferredHeight: 30
 					Layout.alignment: Qt.AlignCenter
 
 					placeholderText: qsTr("Wyrażenie regularne") + "\u2026"
 					selectByMouse: true
 
-					onEditingFinished: {
+					onAccepted: {
 						root.setGlobalColumnFilter(text);
 					}
 				}

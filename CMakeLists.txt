@@ -15,11 +15,15 @@ else()
 endif()
 
 # Qt's modules
-find_package(Qt5 COMPONENTS Core Qml Quick Concurrent REQUIRED)
+find_package(Qt5 COMPONENTS Core Qml Quick Concurrent Gui REQUIRED)
 
 # IzSQLUtilities
 find_package(IzSQLUtilities REQUIRED)
 set(IzSQLUtilities_Binary ${IzSQLUtilities_DIR}/${CMAKE_INSTALL_BINDIR}/${CMAKE_BUILD_TYPE}/${Qt5Core_VERSION}/${CMAKE_CXX_COMPILER_ID}/${PLATFORM_TARGET})
+
+# IzSQLUtilities
+find_package(IzModels REQUIRED)
+set(IzModels_Binary ${IzModels_DIR}/${CMAKE_INSTALL_BINDIR}/${CMAKE_BUILD_TYPE}/${Qt5Core_VERSION}/${CMAKE_CXX_COMPILER_ID}/${PLATFORM_TARGET})
 
 # zlib
 set (
@@ -103,6 +107,8 @@ add_library(${PROJECT_NAME}Plugin SHARED
 	${QRC_FILE}
 )
 
+set_target_properties(${PROJECT_NAME}Plugin PROPERTIES PREFIX "")
+
 # xlsx setup
 if(XLSXWRITER_LIBRARY AND ZLIB_LIBRARY)
 	message("xlsxwriter and zlib found")
@@ -127,7 +133,7 @@ if(XLSXWRITER_LIBRARY AND ZLIB_LIBRARY)
 			${ZLIB_LIBRARY}
 	)
 else()
-	message("could not find xlsxwriter and/ or zlib")
+	message("could not find xlsxwriter and/or zlib")
 endif()
 
 # include directories for target
@@ -149,6 +155,7 @@ target_compile_features(${PROJECT_NAME}Plugin
 target_link_libraries(${PROJECT_NAME}Plugin
 	PUBLIC
 		Qt5::Core
+		Qt5::Gui
 		Qt5::Qml
 		Qt5::Quick
 		Qt5::Concurrent
@@ -177,5 +184,5 @@ install (CODE "set(Qt5Core_VERSION \"${Qt5Core_VERSION}\")")
 install (CODE "set(CMAKE_CXX_COMPILER_ID \"${CMAKE_CXX_COMPILER_ID}\")")
 install (CODE "set(PLATFORM_TARGET \"${PLATFORM_TARGET}\")")
 install (CODE "set(QT_QMAKE_EXECUTABLE \"${QT_QMAKE_EXECUTABLE}\")")
-install (CODE "set(ENV_PATH \"${IzSQLUtilities_Binary};${IzLogger_Binary}\")")
+install (CODE "set(ENV_PATH \"${IzSQLUtilities_Binary};${IzModels_Binary}\")")
 install (SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/QmlPluginDump.cmake")

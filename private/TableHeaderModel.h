@@ -49,7 +49,7 @@ namespace IzSQLTableView
 
 		// QAbstractItemModel interface start
 
-		// basic functionality
+		// basic QAIM functionality
 		QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
 		QModelIndex parent(const QModelIndex& child) const override;
 		int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -66,9 +66,6 @@ namespace IzSQLTableView
 
 		// QAbstractItemModel interface end
 
-		// set data function for use under QML
-		Q_INVOKABLE bool setData(int row, int column, const QVariant& value, const QString& role);
-
 		// used to sort given column
 		Q_INVOKABLE bool sortColumn(int column);
 
@@ -81,14 +78,14 @@ namespace IzSQLTableView
 		// returns width for given column
 		Q_INVOKABLE qreal columnWidth(int column) const;
 
-		// returns name for given column
-		Q_INVOKABLE QString columnName(int column) const;
-
-		// changes column visiblity
+		// used to set visibility for given column
 		Q_INVOKABLE bool setColumnVisibility(int column, bool visibility);
 
-		// returns visibility of given column
+		// returns visibility for given column
 		Q_INVOKABLE bool columnVisibility(int column) const;
+
+		// returns name for given column
+		Q_INVOKABLE QString columnName(int column) const;
 
 		// check is given column index is valid
 		bool columnIsValid(int column) const;
@@ -157,7 +154,7 @@ namespace IzSQLTableView
 		void columnWidthChanged(int column, qreal columnWidth);
 
 		// emited when column visibility was changed
-		void columnVisibilityChanged(int column, bool isVisible);
+		void columnVisibilityChanged(int column, QString columnName, bool isVisible);
 
 		// emited when columns were initialized
 		void initialized();

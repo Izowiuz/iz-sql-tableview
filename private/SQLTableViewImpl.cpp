@@ -1,6 +1,8 @@
 ﻿#include "SQLTableViewImpl.h"
 
+#include <QClipboard>
 #include <QDebug>
+#include <QGuiApplication>
 #include <QItemSelectionModel>
 #include <QJSValue>
 #include <QQmlEngine>
@@ -47,14 +49,41 @@ IzSQLTableView::SQLTableViewImpl::SQLTableViewImpl(QQuickItem* parent)
 	});
 
 	// model connects
-	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::refreshStarted, this, [this]() {
-		m_selectionModel->clearSelection();
-		m_selectionModel->clearCurrentIndex();
+	connect(m_model, &IzSQLUtilities::SQLTableProxyModel::isFilteringChanged, this, [this]() {
+		if (m_model->isFiltering()) {
+			setViewState(QStringLiteral("filtrowanie danych"));
+		} else {
+			setDefaultViewState();
+		}
 	});
 
-	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::refreshEnded, this, &SQLTableViewImpl::refreshEnded);
+	// model connects
+	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::sqlQueryStarted, this, [this]() {
+		setViewState(QStringLiteral("wykonywanie zapytania"));
+	});
 
-	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::refreshStarted, this, &SQLTableViewImpl::refreshStarted);
+	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::sqlQueryReturned, this, [this]() {
+		setViewState(QStringLiteral("ładowanie danych"));
+	});
+
+	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::aboutToRefreshData, this, [this]() {
+		emit aboutToRefreshData();
+	});
+
+	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::dataRefreshStarted, this, [this]() {
+		m_selectionModel->clearSelection();
+		m_selectionModel->clearCurrentIndex();
+		emit refreshStarted();
+	});
+
+	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::dataRefreshEnded, this, [this](bool result) {
+		if (result) {
+			setDefaultViewState();
+		} else {
+			setViewState(QStringLiteral("błąd zapytania :["));
+		}
+		emit refreshEnded(result);
+	});
 
 	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::rowsLoaded, this, [this](int rowsCount) {
 		m_loadedRows = rowsCount;
@@ -81,21 +110,26 @@ IzSQLTableView::SQLTableViewImpl::SQLTableViewImpl(QQuickItem* parent)
 		}
 	});
 
-	// we want to hide a source column so no transformation of column to proxy column is needed
-	connect(m_header->source(), &TableHeaderModel::columnVisibilityChanged, this, [this](int column, bool columnVisibility) {
+	connect(m_header->source(), &TableHeaderModel::columnVisibilityChanged, this, [this](int column, QString columnName, bool columnVisibility) {
 		// TODO: tu można byłoby zastanowić się czy koniecznie trzeba usuwać zaznaczenie i currentIndex
 		if (m_selectionModel->hasSelection()) {
 			m_selectionModel->clearSelection();
 			m_selectionModel->clearCurrentIndex();
 		}
-		m_model->changeColumnVisibilitiy(column, columnVisibility);
+		if (!columnVisibility) {
+			if (!m_hiddenColumns.contains(columnName)) {
+				m_hiddenColumns.push_back(columnName);
+			}
+		} else {
+			m_hiddenColumns.removeAll(columnName);
+		}
 		calculateNaturalTableContentWidth();
 		calculateTableContentWidth();
 	});
 
 	connect(m_header->source(), &TableHeaderModel::filterChanged, this, [this](int column, const QString& filterValue) {
 		if (m_header->source()->at(column).isFiltered) {
-			m_model->addColumnFilter(column, QRegularExpression(filterValue));
+			m_model->addColumnFilter(column, QRegularExpression(filterValue, QRegularExpression::PatternOption::CaseInsensitiveOption));
 		} else {
 			m_model->removeColumnFilter(column);
 		}
@@ -115,9 +149,17 @@ IzSQLTableView::SQLTableViewImpl::SQLTableViewImpl(QQuickItem* parent)
 		// TODO: przydałoby się to ogarnąc w jakiś bardziej racjonalny sposób
 		initializeGlobalColumnFilter();
 
+		for (const auto& column : qAsConst(m_hiddenColumns)) {
+			for (int i{ 0 }; i < m_header->source()->columnCount(); ++i) {
+				if (m_header->source()->data(m_header->source()->index(0, i), static_cast<int>(TableHeaderModel::TableHeaderModelRoles::DisplayData)).toString() == column) {
+					m_header->source()->setColumnVisibility(i, false);
+					continue;
+				}
+			}
+		}
+
 		calculateNaturalTableContentWidth();
 		calculateTableContentWidth();
-		emit relayout();
 	});
 
 	connect(m_header->source(), &TableHeaderModel::columnWidthChanged, this, [this](int column, qreal width) {
@@ -231,39 +273,37 @@ qreal IzSQLTableView::SQLTableViewImpl::columnWidth(int column) const
 	if (column == m_header->columnCount() - 1) {
 		return lastColumnWidth();
 	}
+
 	// because we get 'raw' column numbers from QML we have to transform them trought the header proxy
 	return m_header->source()->columnWidth(m_header->sourceColumn(column));
 }
 
-void IzSQLTableView::SQLTableViewImpl::setColumnWidth(int column, qreal width)
+QVariant IzSQLTableView::SQLTableViewImpl::cellData(int row, int column) const
 {
-	int sourceColumn = m_header->sourceColumn(column);
-	if (m_header->source()->columnIsValid(sourceColumn)) {
-		m_header->source()->setColumnWidth(sourceColumn, width);
-		cacheColumnWidth(column, width);
-	} else {
-		qWarning() << "Got invalid column index:" << column;
-	}
+	// WARNING: hmm ...podejrzane, że tu nie przechodzi to przez source()
+	return m_model->data(m_model->index(row, column));
 }
 
-void IzSQLTableView::SQLTableViewImpl::setColumnFilter(int column, const QString& filter)
+QVariant IzSQLTableView::SQLTableViewImpl::cellData(int row, const QString& columnName) const
 {
-	int sourceColumn = m_header->sourceColumn(column);
-	if (m_header->source()->columnIsValid(sourceColumn)) {
-		m_header->source()->setColumnFilter(sourceColumn, filter);
-	} else {
-		qWarning() << "Got invalid column index:" << column;
-	}
+	return m_model->source()->data(m_model->source()->index(m_model->sourceRow(row), m_model->source()->indexFromColumnName(columnName)));
 }
 
-void IzSQLTableView::SQLTableViewImpl::sortColumn(int column)
+QVariantList IzSQLTableView::SQLTableViewImpl::selectedCellsData(const QString& columnName) const
 {
-	int sourceColumn = m_header->sourceColumn(column);
-	if (m_header->source()->columnIsValid(sourceColumn)) {
-		m_header->source()->sortColumn(sourceColumn);
-	} else {
-		qWarning() << "Got invalid column index:" << column;
+	if (!m_selectionModel->hasSelection()) {
+		return {};
 	}
+
+	const auto rows = m_selectionModel->selectedRows();
+	QVariantList ret;
+	ret.reserve(rows.size());
+
+	for (const auto& row : qAsConst(rows)) {
+		ret.push_back(cellData(row.row(), columnName));
+	}
+
+	return ret;
 }
 
 qreal IzSQLTableView::SQLTableViewImpl::defaultColumnWidth() const
@@ -401,6 +441,7 @@ void IzSQLTableView::SQLTableViewImpl::testScript(const QString& script)
 		qCritical() << "qmlEngine is invalid.";
 		return;
 	}
+
 	qDebug() << script;
 	qDebug() << qmlEngine(this)->evaluate(script).toVariant();
 }
@@ -460,9 +501,11 @@ void IzSQLTableView::SQLTableViewImpl::setTintColor(const QColor& tintColor)
 void IzSQLTableView::SQLTableViewImpl::calculateTableContentWidth()
 {
 	qreal res{ 0 };
+
 	for (int i{ 0 }; i < m_header->columnCount(); ++i) {
 		res += columnWidth(i);
 	}
+
 	if (res != m_tableContentWidth) {
 		m_tableContentWidth = res;
 		emit tableContentWidthChanged();
@@ -484,7 +527,9 @@ void IzSQLTableView::SQLTableViewImpl::calculateLastColumnWidth()
 	if (m_header->columnCount() == 0) {
 		return;
 	}
+
 	qreal lastColumnWidth = m_header->index(0, m_header->columnCount() - 1).data(static_cast<int>(TableHeaderModel::TableHeaderModelRoles::ColumnWidth)).toReal();
+
 	// clang-format off
 	if (width() - m_naturalTableContentWidth > 0) {
 		m_lastColumnWidth = lastColumnWidth + (width() - m_naturalTableContentWidth);
@@ -497,6 +542,42 @@ void IzSQLTableView::SQLTableViewImpl::calculateLastColumnWidth()
 qreal IzSQLTableView::SQLTableViewImpl::lastColumnWidth() const
 {
 	return m_lastColumnWidth;
+}
+
+QStringList IzSQLTableView::SQLTableViewImpl::hiddenColumns() const
+{
+	return m_hiddenColumns;
+}
+
+void IzSQLTableView::SQLTableViewImpl::setHiddenColumns(const QStringList& hiddenColumns)
+{
+	if (m_hiddenColumns != hiddenColumns) {
+		m_hiddenColumns = hiddenColumns;
+		for (const auto& column : qAsConst(m_hiddenColumns)) {
+			for (int i{ 0 }; i < m_header->source()->columnCount(); ++i) {
+				if (m_header->source()->data(m_header->source()->index(0, i), static_cast<int>(TableHeaderModel::TableHeaderModelRoles::DisplayData)).toString() == column) {
+					m_header->source()->setColumnVisibility(i, false);
+					continue;
+				}
+			}
+		}
+		emit hiddenColumnsChanged();
+	}
+}
+
+QJSValue IzSQLTableView::SQLTableViewImpl::cellDelegateProvider() const
+{
+	return m_cellDelegateProvider;
+}
+
+void IzSQLTableView::SQLTableViewImpl::setCellDelegateProvider(const QJSValue& callback)
+{
+	if (!callback.isCallable()) {
+		qWarning() << "cellDelegateProvider must be a callable function.";
+		return;
+	}
+	m_cellDelegateProvider = callback;
+	emit cellDelegateProviderChanged();
 }
 
 QString IzSQLTableView::SQLTableViewImpl::globalColumnFilterDefinition() const
@@ -512,8 +593,34 @@ void IzSQLTableView::SQLTableViewImpl::setGlobalColumnFilterDefinition(const QSt
 		initializeGlobalColumnFilter();
 		calculateNaturalTableContentWidth();
 		calculateTableContentWidth();
-		emit relayout();
 	}
+}
+
+QJSValue IzSQLTableView::SQLTableViewImpl::cellColorProvider() const
+{
+	return m_cellColorProvider;
+}
+
+void IzSQLTableView::SQLTableViewImpl::setCellColorProvider(const QJSValue& callback)
+{
+	if (!callback.isCallable()) {
+		qWarning() << "cellColorProvider must be a callable function.";
+		return;
+	}
+	m_cellColorProvider = callback;
+	emit cellColorProviderChanged();
+}
+
+void IzSQLTableView::SQLTableViewImpl::setDefaultViewState()
+{
+	m_stateDescription = QStringLiteral("bezczynny");
+	emit stateChanged();
+}
+
+void IzSQLTableView::SQLTableViewImpl::setViewState(const QString& stateDescription)
+{
+	m_stateDescription = stateDescription;
+	emit stateChanged();
 }
 
 void IzSQLTableView::SQLTableViewImpl::cacheColumnWidth(int column, qreal width)
@@ -526,6 +633,7 @@ void IzSQLTableView::SQLTableViewImpl::initializeGlobalColumnFilter()
 	if (m_header->source()->columnCount() == 0) {
 		return;
 	}
+
 	if (m_globalColumnFilterDefinition.isEmpty()) {
 		m_header->source()->setExcludedColumns({});
 		m_model->setExcludedColumns({});
@@ -542,7 +650,6 @@ void IzSQLTableView::SQLTableViewImpl::initializeGlobalColumnFilter()
 			}
 
 			m_header->source()->setExcludedColumns(excludedColumns);
-			m_model->setExcludedColumns(excludedColumns);
 		}
 	}
 }
@@ -611,6 +718,17 @@ void IzSQLTableView::SQLTableViewImpl::exportDataToXLSX(const QUrl& filePath, bo
 		return;
 	}
 
+	if (selectedRowsOnly) {
+		m_dataSizeToExport = m_selectionModel->selectedRows().size();
+	} else {
+		m_dataSizeToExport = m_model->rowCount();
+	}
+	emit dataSizeToExportChanged();
+
+	m_exportedDataSetSize = 0;
+	emit exportedDataSetSizeChanged();
+	setViewState(QStringLiteral("przetwarzanie danych"));
+
 	m_dataExportFuture = QtConcurrent::run([this,
 											filePath             = filePath,
 											preserveColumnWidths = preserveColumnWidths,
@@ -631,6 +749,7 @@ void IzSQLTableView::SQLTableViewImpl::exportDataToXLSX(const QUrl& filePath, bo
 		lxw_format* dateFormat = workbook_add_format(workbook);
 		format_set_num_format(dateFormat, "mm-dd-yyyy hh:mm:ss");
 
+		// column index | column name | column width
 		std::vector<std::tuple<int, QString, qreal>> headerDefinition;
 		headerDefinition.reserve(m_header->columnCount());
 
@@ -653,9 +772,11 @@ void IzSQLTableView::SQLTableViewImpl::exportDataToXLSX(const QUrl& filePath, bo
 		int exportedDataSize{ 0 };
 		for (int i{ 0 }; i < m_model->rowCount(); ++i) {
 			int currentColumn = 0;
+
 			if (selectedRowsOnly && !m_model->data(m_model->index(i, 0), static_cast<int>(IzSQLUtilities::SQLTableModel::SQLTableModelRoles::IsSelected)).toBool()) {
 				continue;
 			}
+
 			for (const auto& column : headerDefinition) {
 				auto modelIndex = m_model->index(i, std::get<0>(column));
 				switch (static_cast<QMetaType::Type>(m_model->data(modelIndex).type())) {
@@ -674,6 +795,14 @@ void IzSQLTableView::SQLTableViewImpl::exportDataToXLSX(const QUrl& filePath, bo
 					}
 					break;
 				}
+				case QMetaType::Double: {
+					worksheet_write_number(worksheet, exportedDataSize + 1, currentColumn, m_model->data(modelIndex).toDouble(), nullptr);
+					break;
+				}
+				case QMetaType::Float: {
+					worksheet_write_number(worksheet, exportedDataSize + 1, currentColumn, m_model->data(modelIndex).toDouble(), nullptr);
+					break;
+				}
 				case QMetaType::Int: {
 					worksheet_write_number(worksheet, exportedDataSize + 1, currentColumn, m_model->data(modelIndex).toInt(), nullptr);
 					break;
@@ -688,6 +817,10 @@ void IzSQLTableView::SQLTableViewImpl::exportDataToXLSX(const QUrl& filePath, bo
 				currentColumn++;
 			}
 			exportedDataSize++;
+			if (exportedDataSize % 10 == 0) {
+				m_exportedDataSetSize = exportedDataSize;
+				emit exportedDataSetSizeChanged();
+			}
 		}
 
 		// autofilters
@@ -696,21 +829,31 @@ void IzSQLTableView::SQLTableViewImpl::exportDataToXLSX(const QUrl& filePath, bo
 			worksheet_autofilter(worksheet, 0, 0, exportedDataSize, m_header->columnCount() - 1);
 		}
 
+		m_isSavingData = true;
+		emit isSavingDataChanged();
+		setViewState(QStringLiteral("zapisywanie danych"));
+
 		// close workbook
 		if (workbook_close(workbook) != LXW_NO_ERROR) {
 			result = false;
 		}
 
+		m_isSavingData = false;
+		emit isSavingDataChanged();
+		setDefaultViewState();
+
 		m_isExportingData = false;
 		emit isExportingDataChanged();
 		emit dataExportEnded(result);
+		m_exportedDataSetSize = 0;
+		emit exportedDataSetSizeChanged();
 	});
 
 #else
 	Q_UNUSED(filePath)
 	Q_UNUSED(preserveColumnWidths)
 	Q_UNUSED(addAutoFilters)
-	Q_UNUSED(selectedOnly)
+	Q_UNUSED(selectedRowsOnly)
 	qCritical() << "libxlsxwriter is not enabled but data export was requested.";
 	emit dataExportEnded(false);
 #endif
@@ -855,6 +998,35 @@ void IzSQLTableView::SQLTableViewImpl::currentIndexRight()
 	}
 }
 
+void IzSQLTableView::SQLTableViewImpl::copyDataToClipboard() const
+{
+	if (!m_selectionModel->hasSelection()) {
+		return;
+	}
+
+	if (m_selectionMode == TableSelectionMode::SelectCells) {
+		QGuiApplication::clipboard()->setText(m_model->data(m_model->index(m_selectionModel->currentIndex().row(), m_selectionModel->currentIndex().column())).toString());
+	} else if (m_selectionMode == TableSelectionMode::SelectRows) {
+		QString tmp;
+
+		for (int i{ 0 }; i < m_header->source()->columnCount(); ++i) {
+			if (m_header->source()->data(m_header->source()->index(0, i), static_cast<int>(TableHeaderModel::TableHeaderModelRoles::IsVisible)).toBool()) {
+				tmp += cellData(m_selectionModel->currentIndex().row(), m_header->proxyColumn(i)).toString() + QStringLiteral("\t");
+			}
+		}
+
+		QGuiApplication::clipboard()->setText(tmp);
+	} else if (m_selectionMode == TableSelectionMode::SelectColumns) {
+		QString tmp;
+
+		for (int i{ 0 }; i < m_model->rowCount(); ++i) {
+			tmp += cellData(i, m_selectionModel->currentIndex().column()).toString() + QStringLiteral("\r\n");
+		}
+
+		QGuiApplication::clipboard()->setText(tmp);
+	}
+}
+
 int IzSQLTableView::SQLTableViewImpl::highlightedRow() const
 {
 	return m_highlightedRow;
@@ -865,5 +1037,17 @@ void IzSQLTableView::SQLTableViewImpl::setHighlightedRow(int highlightedRow)
 	if (m_highlightedRow != highlightedRow) {
 		m_highlightedRow = highlightedRow;
 		emit highlightedRowChanged();
+	}
+}
+
+void IzSQLTableView::SQLTableViewImpl::classBegin()
+{
+	auto engine = qmlEngine(this);
+
+	if (engine != nullptr) {
+		m_cellColorProvider    = engine->evaluate(QStringLiteral("( function(row, column, value) { return \"transparent\"; } )"));
+		m_cellDelegateProvider = engine->evaluate(QStringLiteral("( function(row, column, value) { return \"qrc:/include/IzSQLTableView/QML/DefaultDelegate.qml\"; } )"));
+	} else {
+		qWarning() << "Got invalid qmlEngine hadler. Providers will be undefined.";
 	}
 }

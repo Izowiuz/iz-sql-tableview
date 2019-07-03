@@ -66,6 +66,9 @@ namespace IzSQLTableView
 		// table selection count
 		Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged FINAL)
 
+		// table selection true / false
+		Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionChanged FINAL)
+
 		// used to tint base color for the highlight, alpha is ignored
 		Q_PROPERTY(QColor tintColor READ tintColor WRITE setTintColor NOTIFY tintColorChanged FINAL)
 
@@ -84,26 +87,50 @@ namespace IzSQLTableView
 		// column names
 		Q_PROPERTY(QVariantMap columnNames READ columnNames WRITE setColumnNames NOTIFY columnNamesChanged FINAL)
 
-		// if true table will allow for multile selection of indexes
+		// if true table will allow for multpile selection of indexes
 		Q_PROPERTY(bool multiselection READ multiselection WRITE setMultiselection NOTIFY multiselectionChanged FINAL)
 
 		// number of currently loaded rows in model
 		Q_PROPERTY(int loadedRows READ loadedRows NOTIFY loadedRowsChanged FINAL)
 
 		// true if data is curently being exported
-		Q_PROPERTY(bool isExportingData MEMBER m_isExportingData NOTIFY isExportingDataChanged)
+		Q_PROPERTY(bool isExportingData MEMBER m_isExportingData NOTIFY isExportingDataChanged FINAL)
+
+		// amount of currently exported data
+		Q_PROPERTY(int dataSizeToExport MEMBER m_dataSizeToExport NOTIFY dataSizeToExportChanged FINAL)
+
+		// amount of elements to be exported to external file
+		Q_PROPERTY(int exportedDataSetSize MEMBER m_exportedDataSetSize NOTIFY exportedDataSetSizeChanged FINAL)
 
 		// height of the table row
-		Q_PROPERTY(int rowHeight READ rowHeight WRITE setRowHeight NOTIFY rowHeightChanged)
+		Q_PROPERTY(int rowHeight READ rowHeight WRITE setRowHeight NOTIFY rowHeightChanged FINAL)
 
 		// if ture filter fields are visible
-		Q_PROPERTY(bool filterFieldsVisible READ filterFieldsVisible WRITE setFilterFieldsVisible NOTIFY filterFieldsVisibleChanged)
+		Q_PROPERTY(bool filterFieldsVisible READ filterFieldsVisible WRITE setFilterFieldsVisible NOTIFY filterFieldsVisibleChanged FINAL)
 
 		// if true data can be exported to XLSX file
-		Q_PROPERTY(bool dataExportEnabled READ dataExportEnabled WRITE setDataExportEnabled NOTIFY dataExportEnabledChanged)
+		Q_PROPERTY(bool dataExportEnabled READ dataExportEnabled WRITE setDataExportEnabled NOTIFY dataExportEnabledChanged FINAL)
 
 		// regexp definition used to globally hid table columns independently of column state
-		Q_PROPERTY(QString globalColumnFilter READ globalColumnFilterDefinition WRITE setGlobalColumnFilterDefinition NOTIFY globalColumnFilterDefinitionChanged)
+		Q_PROPERTY(QString globalColumnFilter READ globalColumnFilterDefinition WRITE setGlobalColumnFilterDefinition NOTIFY globalColumnFilterDefinitionChanged FINAL)
+
+		// true if view is currently loading data
+		Q_PROPERTY(bool isSavingData MEMBER m_isSavingData NOTIFY isSavingDataChanged FINAL)
+
+		// informational state of the view
+		Q_PROPERTY(QString stateDescription MEMBER m_stateDescription NOTIFY stateChanged)
+
+		// cell color provider
+		Q_PROPERTY(QJSValue cellColorProvider READ cellColorProvider WRITE setCellColorProvider NOTIFY cellColorProviderChanged FINAL)
+
+		// cell delegate provider
+		Q_PROPERTY(QJSValue cellDelegateProvider READ cellDelegateProvider WRITE setCellDelegateProvider NOTIFY cellDelegateProviderChanged FINAL)
+
+		// default delegate for cell
+		Q_PROPERTY(QUrl defaultDelegateURL MEMBER m_defaultDelegateURL CONSTANT FINAL)
+
+		// list of hidden columns
+		Q_PROPERTY(QStringList hiddenColumns READ hiddenColumns WRITE setHiddenColumns NOTIFY hiddenColumnsChanged FINAL)
 
 	public:
 		// ctor
@@ -141,14 +168,14 @@ namespace IzSQLTableView
 		// returns width for given column index
 		Q_INVOKABLE qreal columnWidth(int column) const;
 
-		// sets column width for given column
-		Q_INVOKABLE void setColumnWidth(int column, qreal width);
+		// returns data for given row and column
+		Q_INVOKABLE QVariant cellData(int row, int column) const;
 
-		// sets filter for given column
-		Q_INVOKABLE void setColumnFilter(int column, const QString& filter);
+		// returns data for given row and column name
+		Q_INVOKABLE QVariant cellData(int row, const QString& columnName) const;
 
-		// sorts given column
-		Q_INVOKABLE void sortColumn(int column);
+		// returns selected cells data for given column name
+		Q_INVOKABLE QVariantList selectedCellsData(const QString& columnName) const;
 
 		// m_defaultColumnWidth getter / setter
 		qreal defaultColumnWidth() const;
@@ -244,6 +271,9 @@ namespace IzSQLTableView
 		// helper function: moves current index +1 position (right), selects first index if nothing is selected
 		Q_INVOKABLE void currentIndexRight();
 
+		// copies current data to system clipboard
+		Q_INVOKABLE void copyDataToClipboard() const;
+
 		// m_loadedRows getter
 		int loadedRows() const;
 
@@ -264,13 +294,37 @@ namespace IzSQLTableView
 
 		// model's column names getter / setter
 		QVariantMap columnNames() const;
-		void setColumnNames(const QVariantMap &columnNames);
+		void setColumnNames(const QVariantMap& columnNames);
 
 		// m_globalColumnFilterDefinition
 		QString globalColumnFilterDefinition() const;
-		Q_INVOKABLE void setGlobalColumnFilterDefinition(const QString &globalColumnFilterDefinition);
+		Q_INVOKABLE void setGlobalColumnFilterDefinition(const QString& globalColumnFilterDefinition);
+
+		// cellColorProvider getter / setter
+		QJSValue cellColorProvider() const;
+		void setCellColorProvider(const QJSValue& callback);
+
+		// cellDelegateProvider getter / setter
+		QJSValue cellDelegateProvider() const;
+		void setCellDelegateProvider(const QJSValue& callback);
+
+		// m_hiddenColumns getter / setter
+		QStringList hiddenColumns() const;
+		void setHiddenColumns(const QStringList& hiddenColumns);
+
+		// QQuickItem interface start
+
+		void classBegin() override;
+
+		// QQuickItem interface end
 
 	private:
+		// sets default view state
+		void setDefaultViewState();
+
+		// sets state of the view
+		void setViewState(const QString& stateDescription);
+
 		// used to cache column width for given index
 		void cacheColumnWidth(int column, qreal width);
 
@@ -364,6 +418,30 @@ namespace IzSQLTableView
 		// regexp definition used to globally hid table columns independently of column state
 		QString m_globalColumnFilterDefinition;
 
+		// data size to export during export operation
+		std::atomic<int> m_dataSizeToExport{ 0 };
+
+		// currently exported data size
+		std::atomic<int> m_exportedDataSetSize{ 0 };
+
+		// true if model is currently saving exported data
+		std::atomic<bool> m_isSavingData{ false };
+
+		// informational state of the view
+		QString m_stateDescription{ QStringLiteral("bezczynny") };
+
+		// cell color provider
+		QJSValue m_cellColorProvider;
+
+		// cell delegate provider
+		QJSValue m_cellDelegateProvider;
+
+		// default delegate URL
+		QUrl m_defaultDelegateURL{ QStringLiteral("qrc:/include/IzSQLTableView/QML/DefaultDelegate.qml") };
+
+		// hidden columns
+		QStringList m_hiddenColumns;
+
 	signals:
 		// Q_PROPERTY changed signals
 		void selectionModeChanged();
@@ -389,6 +467,13 @@ namespace IzSQLTableView
 		void dataExportEnabledChanged();
 		void columnNamesChanged();
 		void globalColumnFilterDefinitionChanged();
+		void dataSizeToExportChanged();
+		void exportedDataSetSizeChanged();
+		void isSavingDataChanged();
+		void stateChanged();
+		void cellColorProviderChanged();
+		void cellDelegateProviderChanged();
+		void hiddenColumnsChanged();
 
 		// emited when table layout has to be recalculated
 		void relayout();
@@ -397,6 +482,7 @@ namespace IzSQLTableView
 		void dataExportEnded(bool result);
 
 		// wrapped signals from source model state changes
+		void aboutToRefreshData();
 		void refreshStarted();
 		void refreshEnded(bool result);
 	};

@@ -19,10 +19,40 @@ SQLTableViewImpl {
 	// view handler
 	readonly property alias view: tableViewInternal
 
+	// if true refresh button will be clicakble
+	property bool refreshButtonEnabled: true
+
 	// used to export data
 	function exportData(filePath, preserveColumnWidths, addAutofilters, selectedRowsOnly) {
 		root.exportDataToXLSX(filePath, preserveColumnWidths, addAutofilters, selectedRowsOnly);
 	}
+
+	// returns base cell color
+	function cellColor(highlighted, isSelected, row, column) {
+		if (highlighted) {
+			return Qt.tint(root.baseColor, Qt.rgba(root.tintColor.r, root.tintColor.g, root.tintColor.b, 0.256));
+		} else {
+			if (isSelected) {
+				return Qt.tint(root.baseColor, Qt.rgba(root.tintColor.r, root.tintColor.g, root.tintColor.b, 0.512));
+			} else {
+				if (root.alternatingRowColors) {
+					if (row % 2 !== 0) {
+						return Qt.lighter(root.baseColor, root.lighterFactor);
+					} else {
+						return Qt.darker(root.baseColor, root.darkerFactor);
+					}
+				} else {
+					return root.baseColor;
+				}
+			}
+		}
+	}
+
+	// emited when cell was clicked
+	signal clicked(int row, int column);
+
+	// emited when cell was double clicked
+	signal doubleClicked(int row, int column);
 
 	tintColor: "#079300"
 	baseColor: root.Material.theme === Material.Dark ? "#7f8a93" : "#f7f7f7"
@@ -56,22 +86,11 @@ SQLTableViewImpl {
 	states: [
 		State {
 			name: "refreshingData"
-			when: tableViewInternal.model.source.isRefreshing
-
-			PropertyChanges {
-				target: tableFooter
-				enabled: false
-			}
+			when: tableViewInternal.model.source.isRefreshingData
 
 			PropertyChanges {
 				target: tableViewInternal
-				enabled: false
-				visible: false
-			}
-
-			PropertyChanges {
-				target: tableHeaderContainer
-				enabled: false
+				opacity: 0
 			}
 
 			PropertyChanges {
@@ -80,28 +99,18 @@ SQLTableViewImpl {
 			}
 
 			PropertyChanges {
-				target: quickSettings
-				enabled: false
-			}
-
-			PropertyChanges {
-				target: columnsSettings
-				enabled: false
-			}
-
-			PropertyChanges {
 				target: dataRefreshIndicator
-				visible: true
-			}
-
-			PropertyChanges {
-				target: dataRefreshPadding
 				visible: true
 			}
 
 			PropertyChanges {
 				target: dataRefreshRectangle
 				state: "visible"
+			}
+
+			PropertyChanges {
+				target: root
+				enabled: false
 			}
 		},
 
@@ -115,7 +124,7 @@ SQLTableViewImpl {
 			}
 
 			PropertyChanges {
-				target: tableFooter
+				target: root
 				enabled: false
 			}
 		},
@@ -125,33 +134,13 @@ SQLTableViewImpl {
 			when: root.isExportingData
 
 			PropertyChanges {
-				target: tableFooter
-				enabled: false
-			}
-
-			PropertyChanges {
-				target: tableViewInternal
-				enabled: false
-			}
-
-			PropertyChanges {
-				target: tableHeaderContainer
-				enabled: false
-			}
-
-			PropertyChanges {
-				target: quickSettings
-				enabled: false
-			}
-
-			PropertyChanges {
-				target: columnsSettings
-				enabled: false
-			}
-
-			PropertyChanges {
 				target: dataRefreshIndicator
 				visible: true
+			}
+
+			PropertyChanges {
+				target: root
+				enabled: false
 			}
 		}
 	]
@@ -166,9 +155,12 @@ SQLTableViewImpl {
 			right: parent.right
 		}
 
-		indeterminate: true
 		visible: false
 		z: tableViewInternal.z + 10
+		indeterminate: root.isExportingData && !root.isSavingData ? false : true
+		from: 0
+		to: root.dataSizeToExport
+		value: root.exportedDataSetSize
 	}
 
 	ProgressBar {
@@ -192,7 +184,7 @@ SQLTableViewImpl {
 		width: 200
 		height: 40
 		anchors.centerIn: parent
-		visible: root.model.source.count === 0 && !root.model.source.isRefreshing
+		visible: root.model.source.count === 0 && !root.model.source.isRefreshingData
 
 		color: root.Material.background
 		border.width: 1
@@ -227,13 +219,16 @@ SQLTableViewImpl {
 
 				PropertyChanges {
 					target: dataRefreshRectangle
-					opacity: 0.35
+					opacity: 0.20
 				}
 			}
 		]
 
 		transitions: Transition {
-			PropertyAnimation { property: "opacity" }
+			PropertyAnimation {
+				property: "opacity"
+				duration: 500
+			}
 		}
 	}
 
@@ -299,7 +294,7 @@ SQLTableViewImpl {
 															})
 														});
 			if (columnSettings) {
-				columnSettings.changeColumnWidth.connect(root.setColumnWidth);
+				columnSettings.changeColumnWidth.connect(tableHeader.model.setColumnWidth);
 				columnSettings.setGlobalColumnFilter.connect(root.setGlobalColumnFilterDefinition);
 				columnSettings.open();
 			}
@@ -311,7 +306,7 @@ SQLTableViewImpl {
 
 		anchors.fill: parent
 
-		IzBoxContainer {
+		IzRectangle {
 			id: tableHeaderContainer
 
 			signal columnSizeSet(int column, int columnSize)
@@ -328,15 +323,15 @@ SQLTableViewImpl {
 
 				clip: true
 				interactive: false
-				contentWidth: tableViewInternal.contentWidth
-				boundsMovement: tableViewInternal.boundsMovement
-				rowSpacing: tableViewInternal.rowSpacing
+				contentWidth: root.tableContentWidth
+				boundsMovement: Flickable.StopAtBounds
+				rowSpacing: 1
 				contentX: tableViewInternal.contentX
+
 				columnWidthProvider: function (column) {
-					// TODO: wtf?
-					if (column >= tableHeader.model.columnCount()) { return 1; }
 					return root.columnWidth(column);
 				}
+
 				rowHeightProvider: function (row) {
 					return root.filterFieldsVisible ? 55 : 30;
 				}
@@ -347,20 +342,16 @@ SQLTableViewImpl {
 					filterFieldVisible: root.filterFieldsVisible
 
 					onSetColumnWidth: {
-						root.setColumnWidth(column, width);
+						tableHeader.model.setColumnWidth(column, width);
 					}
 
 					onFilterColumn: {
-						root.setColumnFilter(column, filter);
+						tableHeader.model.setColumnFilter(column, filter);
 					}
 
 					onSortColumn: {
-						root.sortColumn(column);
+						tableHeader.model.sortColumn(column);
 					}
-				}
-
-				Behavior on opacity {
-					NumberAnimation { duration: 150 }
 				}
 			}
 		}
@@ -371,24 +362,29 @@ SQLTableViewImpl {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
-			visible: false
+			visible: !tableViewInternal.visible
 		}
 
 		TableView {
 			id: tableViewInternal
+
+			// prerefresh contentY
+			property real prerefreshContentY: 0
+			property bool wasRefreshingData: false
 
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
 			focus: true
 			clip: true
-			boundsMovement: Flickable.StopAtBounds
 			interactive: !quickSettings.hovered
-			rowSpacing: 1
+			contentWidth: tableHeader.contentWidth
+			boundsMovement: tableHeader.boundsMovement
+			rowSpacing: tableHeader.rowSpacing
 
-			contentWidth: root.tableContentWidth
-
-			columnWidthProvider: tableHeader.columnWidthProvider
+			columnWidthProvider: function (column) {
+				return root.columnWidth(column);
+			}
 
 			rowHeightProvider: function (row) {
 				return root.rowHeight;
@@ -417,6 +413,8 @@ SQLTableViewImpl {
 					root.currentIndexLeft();
 				} else if (event.key === Qt.Key_Right) {
 					root.currentIndexRight();
+				} else if (event.key === Qt.Key_C && (event.modifiers & Qt.ControlModifier)) {
+					root.copyDataToClipboard();
 				}
 			}
 
@@ -426,22 +424,13 @@ SQLTableViewImpl {
 
 				property bool highlighted: root.indexIsHighlighted(row, column, root.highlightedRow, root.highlightedColumn)
 
-				IzText {
-					anchors {
-						fill: parent
-						leftMargin: 2
-						rightMargin: 2
-					}
-
-					text: displayData !== undefined ? displayData : ""
-				}
-
 				MouseArea {
 					id: mouseArea
 
 					anchors.fill: parent
 
 					hoverEnabled: true
+					propagateComposedEvents: true
 
 					onContainsMouseChanged: {
 						if (containsMouse) {
@@ -460,15 +449,27 @@ SQLTableViewImpl {
 							root.select(root.createIndex(row, column), ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current);
 						}
 					}
+
+					onClicked: {
+						root.clicked(row, column);
+					}
+
+					onDoubleClicked: {
+						root.doubleClicked(row, column);
+					}
+
+					Loader {
+						anchors {
+							fill: parent
+							leftMargin: 2
+							rightMargin: 2
+						}
+
+						source: root.cellDelegateProvider(row, column, displayData)
+					}
 				}
 
-				color: highlighted ? Qt.tint(root.baseColor, Qt.rgba(root.tintColor.r, root.tintColor.g, root.tintColor.b, 0.256))
-									: isSelected ? Qt.tint(root.baseColor, Qt.rgba(root.tintColor.r, root.tintColor.g, root.tintColor.b, 0.512))
-									: (root.alternatingRowColors
-												 ? (row % 2 !== 0
-													? Qt.lighter(root.baseColor, root.lighterFactor)
-													: Qt.darker(root.baseColor, root.darkerFactor))
-												 : root.baseColor)
+				color: Qt.tint(root.cellColor(highlighted, isSelected, row, column), root.cellColorProvider(row, column, displayData))
 			}
 
 			model: root.model
@@ -476,15 +477,40 @@ SQLTableViewImpl {
 			Connections {
 				target: root.model.source
 
-				onRefreshStarted: {
+				onAboutToRefreshData: {
+					tableViewInternal.prerefreshContentY = tableViewInternal.contentY;
+				}
+
+				onDataRefreshStarted: {
 					// WARNING: hack
+					tableViewInternal.wasRefreshingData = true;
 					tableViewInternal.contentX = 0;
 					tableViewInternal.contentY = 0;
+				}
+
+				onDataRefreshEnded: {
+					// restore contentY after refresh
+					if (result && tableViewInternal.contentHeight > tableViewInternal.prerefreshContentY) {
+						tableViewInternal.contentY = tableViewInternal.prerefreshContentY;
+					}
+				}
+			}
+
+			Connections {
+				target: root.model
+
+				onIsFilteringChanged: {
+					// WARNING: hack na dziewczne zachowanie QML'owej tabelki
+					if(!root.model.isFiltering && !tableViewInternal.wasRefreshingData) {
+						tableViewInternal.contentY = 0;
+					} else if (!root.model.isFiltering && tableViewInternal.wasRefreshingData) {
+						tableViewInternal.wasRefreshingData = false;
+					}
 				}
 			}
 		}
 
-		IzBoxContainer {
+		IzRectangle {
 			id: tableFooter
 
 			Layout.preferredHeight: 30
@@ -525,6 +551,13 @@ SQLTableViewImpl {
 					text: qsTr("Kolumna: ") + root.currentColumn
 				}
 
+				IzText {
+					Layout.fillHeight: true
+					Layout.preferredWidth: 300
+
+					text: qsTr("Stan: <b>") + root.stateDescription + "</b>"
+				}
+
 				Item {
 					Layout.fillHeight: true
 					Layout.fillWidth: true
@@ -536,7 +569,7 @@ SQLTableViewImpl {
 
 					fontIcon: "\uf450"
 					tooltip: qsTr("Odśwież dane")
-					enabled: root.model.source.queryIsValid
+					enabled: root.model.source.queryIsValid && root.refreshButtonEnabled
 
 					onReleased: {
 						root.model.source.refreshData();

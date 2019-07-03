@@ -46,11 +46,6 @@ QVariant IzSQLTableView::ColumnsSettingsWrapper::data(const QModelIndex& index, 
 	return m_header->data(m_header->index(index.column(), index.row()), role);
 }
 
-bool IzSQLTableView::ColumnsSettingsWrapper::setData(int row, int column, const QVariant& value, const QString& role)
-{
-	return m_header->setData(row, column, value, role);
-}
-
 QHash<int, QByteArray> IzSQLTableView::ColumnsSettingsWrapper::roleNames() const
 {
 	return m_header->roleNames();

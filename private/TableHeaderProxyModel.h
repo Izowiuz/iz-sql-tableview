@@ -29,11 +29,29 @@ namespace IzSQLTableView
 
 		// QAbstractProxyModel interface end
 
+		// returns source row for given proxy column or -1 if invalid index was requested
+		Q_INVOKABLE int sourceRow(int proxyRow) const;
+
 		// returns source column for given proxy column or -1 if invalid index was requested
 		Q_INVOKABLE int sourceColumn(int proxyColumn) const;
 
-		// returns proxy column for given row column or -1 if invalid index was requested
+		// returns proxy row for given source row or -1 if invalid index was requested
+		Q_INVOKABLE int proxyRow(int sourceRow) const;
+
+		// returns proxy column for given source column or -1 if invalid index was requested
 		Q_INVOKABLE int proxyColumn(int sourceColumn) const;
+
+		// used to sort given column
+		Q_INVOKABLE bool sortColumn(int column);
+
+		// used to apply filter to a given column
+		Q_INVOKABLE bool setColumnFilter(int column, const QString& filterValue);
+
+		// used to set width for a given column
+		Q_INVOKABLE bool setColumnWidth(int column, qreal columnWidth);
+
+		// used to set visibility for given column
+		Q_INVOKABLE bool setColumnVisibility(int column, bool visibility);
 
 	private:
 		// handler to the internal model

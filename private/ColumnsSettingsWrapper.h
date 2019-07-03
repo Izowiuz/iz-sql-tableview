@@ -26,9 +26,6 @@ namespace IzSQLTableView
 		// data
 		QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
 
-		// set data function for use under QML
-		Q_INVOKABLE bool setData(int row, int column, const QVariant& value, const QString& role);
-
 		// role names
 		QHash<int, QByteArray> roleNames() const;
 
