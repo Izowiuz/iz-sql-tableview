@@ -190,7 +190,7 @@ Popup {
 			Layout.fillHeight: true
 			Layout.maximumHeight: 120
 
-			title: qsTr("GLobal column filter")
+			title: qsTr("Global column filter")
 
 			ColumnLayout {
 				anchors {
