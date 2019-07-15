@@ -613,7 +613,7 @@ void IzSQLTableView::SQLTableViewImpl::setCellColorProvider(const QJSValue& call
 
 void IzSQLTableView::SQLTableViewImpl::setDefaultViewState()
 {
-	m_stateDescription = QStringLiteral("bezczynny");
+	m_stateDescription = QStringLiteral("idle");
 	emit stateChanged();
 }
 

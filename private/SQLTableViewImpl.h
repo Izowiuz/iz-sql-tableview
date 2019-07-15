@@ -428,7 +428,7 @@ namespace IzSQLTableView
 		std::atomic<bool> m_isSavingData{ false };
 
 		// informational state of the view
-		QString m_stateDescription{ QStringLiteral("bezczynny") };
+		QString m_stateDescription{ QStringLiteral("idle") };
 
 		// cell color provider
 		QJSValue m_cellColorProvider;
