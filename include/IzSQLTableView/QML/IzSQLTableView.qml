@@ -71,9 +71,9 @@ SQLTableViewImpl {
 
 	onDataExportEnded: {
 		if (result) {
-			IzToast.show(root, qsTr("Dane wyeksportowano poprawnie"), "ok");
+			IzToast.show(root, qsTr("Data exported"), "ok");
 		} else {
-			IzToast.show(root, qsTr("Nastąpił błąd przy eksportowaniu danych"), "error");
+			IzToast.show(root, qsTr("Data export error"), "error");
 		}
 	}
 
@@ -177,7 +177,7 @@ SQLTableViewImpl {
 
 		IzText {
 			anchors.centerIn: parent
-			text: qsTr("Brak pozycji do wyświetlenia")
+			text: qsTr("No results")
 		}
 	}
 
@@ -515,35 +515,35 @@ SQLTableViewImpl {
 					Layout.fillHeight: true
 					Layout.preferredWidth: 120
 
-					text: qsTr("Załadowane: ") + root.loadedRows
+					text: qsTr("Loaded: ") + root.loadedRows
 				}
 
 				IzText {
 					Layout.fillHeight: true
 					Layout.preferredWidth: 120
 
-					text: qsTr("Zaznaczone: ") + root.selectionCount
+					text: qsTr("Selected: ") + root.selectionCount
 				}
 
 				IzText {
 					Layout.fillHeight: true
 					Layout.preferredWidth: 120
 
-					text: qsTr("Wiersz: ") + root.currentRow
+					text: qsTr("Row: ") + root.currentRow
 				}
 
 				IzText {
 					Layout.fillHeight: true
 					Layout.preferredWidth: 120
 
-					text: qsTr("Kolumna: ") + root.currentColumn
+					text: qsTr("Column: ") + root.currentColumn
 				}
 
 				IzText {
 					Layout.fillHeight: true
 					Layout.preferredWidth: 300
 
-					text: qsTr("Stan: <b>") + root.stateDescription + "</b>"
+					text: qsTr("State: <b>") + root.stateDescription + "</b>"
 				}
 
 				Item {
@@ -556,7 +556,7 @@ SQLTableViewImpl {
 					Layout.preferredWidth: 26
 
 					fontIcon: "\uf450"
-					tooltip: qsTr("Odśwież dane")
+					tooltip: qsTr("Refresh data")
 					enabled: root.model.source.queryIsValid && root.refreshButtonEnabled
 
 					onReleased: {
@@ -571,7 +571,7 @@ SQLTableViewImpl {
 
 					enabled: root.dataExportEnabled && root.model.source.count !== 0
 					fontIcon: "\uf21b"
-					tooltip: qsTr("Eksportuj dane do Excel'a")
+					tooltip: qsTr("Export data to Excel'a")
 
 					onReleased: {
 						var exportDialog = ObjectCreator.create(root, "qrc:/include/IzSQLTableView/QML/ExcelExportPopup.qml",
@@ -590,7 +590,7 @@ SQLTableViewImpl {
 					Layout.preferredWidth: 26
 
 					fontIcon: tableViewInternal.activeFocus ? "\uf30c" : "\uf310"
-					tooltip: tableViewInternal.activeFocus ? qsTr("Nawigacja klawiaturą aktywna") : qsTr("Nawigacja klawiaturą nieaktywna")
+					tooltip: tableViewInternal.activeFocus ? qsTr("Keyboard navigation enabled") : qsTr("Keyboard navigation disabled")
 
 					onReleased: {
 						tableViewInternal.forceActiveFocus();

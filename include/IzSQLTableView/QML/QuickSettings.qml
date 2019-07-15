@@ -97,7 +97,7 @@ Control {
 				Layout.leftMargin: 4
 				Layout.alignment: Qt.AlignLeft
 
-				text: qsTr("Ustawienia widoku")
+				text: qsTr("View settings")
 				font.bold: true
 			}
 
@@ -109,7 +109,7 @@ Control {
 				Layout.alignment: Qt.AlignRight
 
 				fontIcon: root.state === "shown" ? "\uf140" : "\uf143"
-				tooltip: root.state === "shown" ? qsTr("Schowaj opcje") : qsTr("Pokaż opcje")
+				tooltip: root.state === "shown" ? qsTr("Show options") : qsTr("Hide options")
 
 				onReleased: {
 					if (root.state === "shown") {
@@ -137,7 +137,7 @@ Control {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Kolor bazowy:")
+					text: qsTr("Base color:")
 				}
 			}
 
@@ -169,7 +169,7 @@ Control {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Zaznaczenie:")
+					text: qsTr("Selection:")
 				}
 			}
 
@@ -201,7 +201,7 @@ Control {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Zaciemnienie:")
+					text: qsTr("Dark factor:")
 				}
 			}
 
@@ -227,7 +227,7 @@ Control {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Rozjaśnienie:")
+					text: qsTr("Light factor:")
 				}
 			}
 
@@ -253,7 +253,7 @@ Control {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Przemienność:")
+					text: qsTr("Alt. rows:")
 				}
 			}
 
@@ -279,7 +279,7 @@ Control {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Filtry widoczne:")
+					text: qsTr("Filters:")
 				}
 			}
 
@@ -320,17 +320,17 @@ Control {
 
 					model: ListModel {
 						ListElement {
-							description: qsTr("Wiersze")
+							description: qsTr("Rows")
 							modeValue: IzSQLTableViewEnums.SelectRows
 						}
 
 						ListElement {
-							description: qsTr("Kolumny")
+							description: qsTr("Columns")
 							modeValue: IzSQLTableViewEnums.SelectColumns
 						}
 
 						ListElement {
-							description: qsTr("Komórki")
+							description: qsTr("Cells")
 							modeValue: IzSQLTableViewEnums.SelectCells
 						}
 					}
@@ -362,7 +362,7 @@ Control {
 				TableButton {
 					anchors.fill: parent
 
-					text: qsTr("Domyślne")
+					text: qsTr("Defaults")
 
 					onReleased: {
 						root.resetSettings();

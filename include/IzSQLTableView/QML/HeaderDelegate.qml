@@ -69,7 +69,7 @@ Button {
 
 				visible: isFiltered
 				fontIcon: "\uf235"
-				tooltip: qsTr("Usuń filtr")
+				tooltip: qsTr("Remove filter")
 
 				onReleased: {
 					root.filterColumn(index, "");

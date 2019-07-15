@@ -47,7 +47,7 @@ Popup {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Zachowaj szerokości kolumn")
+					text: qsTr("Preserve columns widths")
 				}
 			}
 
@@ -78,7 +78,7 @@ Popup {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Utwórz filtry danych")
+					text: qsTr("Create data filter")
 				}
 			}
 
@@ -109,7 +109,7 @@ Popup {
 				IzText {
 					anchors.fill: parent
 
-					text: qsTr("Zaznaczone wiersze")
+					text: qsTr("Selected rows")
 				}
 			}
 
@@ -133,7 +133,7 @@ Popup {
 			Layout.preferredHeight: 20
 			Layout.preferredWidth: 240
 
-			text: qsTr("<b>Plik:</b> ") + root.filePath
+			text: qsTr("<b>File:</b> ") + root.filePath
 			enabled: true
 
 			MouseArea {
@@ -155,7 +155,7 @@ Popup {
 
 				TableButton {
 					anchors.fill: parent
-					text: qsTr("Wybierz ściezkę")
+					text: qsTr("Select path")
 
 					onReleased: {
 						excelExportFileDialog.open();
@@ -170,7 +170,7 @@ Popup {
 				TableButton {
 					anchors.fill: parent
 					visible: root.filePath !== ""
-					text: qsTr("Eksportuj")
+					text: qsTr("Export")
 
 					onReleased: {
 						root.exportData(root.filePath,

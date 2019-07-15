@@ -16,7 +16,7 @@ Control {
 		anchors.fill: parent
 
 		fontIcon: "\uf837"
-		tooltip: qsTr("Opcje kolumn")
+		tooltip: qsTr("Column options")
 
 		onReleased: {
 			root.showColumnSettings();

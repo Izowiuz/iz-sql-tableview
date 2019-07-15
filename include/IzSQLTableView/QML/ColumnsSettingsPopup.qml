@@ -39,7 +39,7 @@ Popup {
 
 					horizontalAlignment: Qt.AlignHCenter
 					font.bold: true
-					text: qsTr("Kolumna")
+					text: qsTr("Column")
 				}
 			}
 
@@ -52,7 +52,7 @@ Popup {
 
 					horizontalAlignment: Qt.AlignHCenter
 					font.bold: true
-					text: qsTr("Szerokość")
+					text: qsTr("Width")
 				}
 			}
 
@@ -65,7 +65,7 @@ Popup {
 
 					horizontalAlignment: Qt.AlignHCenter
 					font.bold: true
-					text: qsTr("Filtr")
+					text: qsTr("Filter")
 				}
 			}
 
@@ -78,7 +78,7 @@ Popup {
 
 					horizontalAlignment: Qt.AlignHCenter
 					font.bold: true
-					text: qsTr("Widoczność")
+					text: qsTr("Visibility")
 				}
 			}
 		}
@@ -114,7 +114,7 @@ Popup {
 					IzTextField {
 						anchors.fill: parent
 
-						placeholderText: qsTr("Szerokość") + "\u2026"
+						placeholderText: qsTr("Width") + "\u2026"
 						validator: IntValidator {
 							bottom: 15
 							top: 1200
@@ -190,7 +190,7 @@ Popup {
 			Layout.fillHeight: true
 			Layout.maximumHeight: 120
 
-			title: qsTr("Globalny filtr kolumn")
+			title: qsTr("GLobal column filter")
 
 			ColumnLayout {
 				anchors {
@@ -202,7 +202,7 @@ Popup {
 					Layout.fillWidth: true
 					Layout.preferredHeight: 30
 
-					text: qsTr("Aktualny filtr:") + root.globalFilterValue
+					text: qsTr("Current filter:") + root.globalFilterValue
 					wrapMode: Text.WrapAnywhere
 				}
 
@@ -215,7 +215,7 @@ Popup {
 					Layout.preferredHeight: 30
 					Layout.alignment: Qt.AlignCenter
 
-					placeholderText: qsTr("Wyrażenie regularne") + "\u2026"
+					placeholderText: qsTr("Regular expression") + "\u2026"
 					selectByMouse: true
 
 					onAccepted: {

@@ -29,7 +29,7 @@ SpinBox {
 	contentItem: IzText {
 		anchors.fill: parent
 		horizontalAlignment: Text.AlignHCenter
-		text: root.realValue > 0.0 ? root.realValue : qsTr("Wył.")
+		text: root.realValue > 0.0 ? root.realValue : qsTr("Dis.")
 	}
 
 	background: Item {}
