@@ -51,7 +51,7 @@ IzSQLTableView::SQLTableViewImpl::SQLTableViewImpl(QQuickItem* parent)
 	// model connects
 	connect(m_model, &IzSQLUtilities::SQLTableProxyModel::isFilteringChanged, this, [this]() {
 		if (m_model->isFiltering()) {
-			setViewState(QStringLiteral("filtrowanie danych"));
+			setViewState(QStringLiteral("filtering data"));
 		} else {
 			setDefaultViewState();
 		}
@@ -59,11 +59,11 @@ IzSQLTableView::SQLTableViewImpl::SQLTableViewImpl(QQuickItem* parent)
 
 	// model connects
 	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::sqlQueryStarted, this, [this]() {
-		setViewState(QStringLiteral("wykonywanie zapytania"));
+		setViewState(QStringLiteral("executing query"));
 	});
 
 	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::sqlQueryReturned, this, [this]() {
-		setViewState(QStringLiteral("ładowanie danych"));
+		setViewState(QStringLiteral("loading data"));
 	});
 
 	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::aboutToRefreshData, this, [this]() {
@@ -80,7 +80,7 @@ IzSQLTableView::SQLTableViewImpl::SQLTableViewImpl(QQuickItem* parent)
 		if (result) {
 			setDefaultViewState();
 		} else {
-			setViewState(QStringLiteral("błąd zapytania :["));
+			setViewState(QStringLiteral("query error :["));
 		}
 		emit refreshEnded(result);
 	});
