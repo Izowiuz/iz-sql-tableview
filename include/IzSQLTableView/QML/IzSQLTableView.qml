@@ -107,11 +107,6 @@ SQLTableViewImpl {
 				target: dataRefreshRectangle
 				state: "visible"
 			}
-
-			PropertyChanges {
-				target: root
-				enabled: false
-			}
 		},
 
 		State {
@@ -122,11 +117,6 @@ SQLTableViewImpl {
 				target: dataFilteringIndicator
 				visible: true
 			}
-
-			PropertyChanges {
-				target: root
-				enabled: false
-			}
 		},
 
 		State {
@@ -136,11 +126,6 @@ SQLTableViewImpl {
 			PropertyChanges {
 				target: dataRefreshIndicator
 				visible: true
-			}
-
-			PropertyChanges {
-				target: root
-				enabled: false
 			}
 		}
 	]
@@ -320,7 +305,7 @@ SQLTableViewImpl {
 				anchors.fill: parent
 
 				model: root.header
-
+				enabled: root.state === ""
 				clip: true
 				interactive: false
 				contentWidth: root.tableContentWidth
@@ -375,6 +360,7 @@ SQLTableViewImpl {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
+			enabled: root.state === ""
 			focus: true
 			clip: true
 			interactive: !quickSettings.hovered
@@ -515,6 +501,8 @@ SQLTableViewImpl {
 
 			Layout.preferredHeight: 30
 			Layout.fillWidth: true
+
+			enabled: root.state === ""
 
 			RowLayout {
 				anchors {

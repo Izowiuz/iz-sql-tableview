@@ -16,6 +16,7 @@ endif()
 
 # Qt's modules
 find_package(Qt5 COMPONENTS Core Qml Quick Concurrent Gui REQUIRED)
+find_package(Qt5QuickCompiler)
 
 # IzSQLUtilities
 find_package(IzSQLUtilities REQUIRED)
@@ -75,6 +76,10 @@ find_library(
 
 # Qt's rcc files
 qt5_add_resources(QRC_FILE
+	"qml_src.qrc"
+)
+
+qtquick_compiler_add_resources(QRC_FILE
 	"qml_src.qrc"
 )
 
@@ -153,7 +158,7 @@ target_compile_features(${PROJECT_NAME}Plugin
 
 # target links
 target_link_libraries(${PROJECT_NAME}Plugin
-	PUBLIC
+	PRIVATE
 		Qt5::Core
 		Qt5::Gui
 		Qt5::Qml
@@ -172,7 +177,8 @@ target_compile_definitions(${PROJECT_NAME}Plugin
 install (TARGETS ${PROJECT_NAME}Plugin
 	RUNTIME DESTINATION ${CMAKE_BUILD_TYPE}/${Qt5Core_VERSION}/${CMAKE_CXX_COMPILER_ID}/${PLATFORM_TARGET}/${PROJECT_NAME}
 )
-install (FILES "private/qmldir"
+
+install (FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}/qmldir"
 	DESTINATION ${CMAKE_BUILD_TYPE}/${Qt5Core_VERSION}/${CMAKE_CXX_COMPILER_ID}/${PLATFORM_TARGET}/${PROJECT_NAME}
 )
 

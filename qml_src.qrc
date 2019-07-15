@@ -16,5 +16,6 @@
         <file>include/IzSQLTableView/QML/ColumnsSettings.qml</file>
         <file>include/IzSQLTableView/QML/ColumnsSettingsPopup.qml</file>
         <file>include/IzSQLTableView/QML/DefaultDelegate.qml</file>
+        <file>include/IzSQLTableView/qmldir</file>
     </qresource>
 </RCC>
