@@ -13,6 +13,7 @@
 void IzSQLTableView::QmlPlugin::registerTypes(const char* uri)
 {
 	Q_ASSERT(uri == QLatin1String("IzSQLTableView"));
+
 	qRegisterMetaType<TableHeaderModel*>("TableHeaderModel*");
 	qRegisterMetaType<TableHeaderProxyModel*>("TableHeaderProxyModel*");
 	qRegisterMetaType<ColumnsSettingsWrapper*>("ColumnsSettingsWrapper*");
@@ -24,6 +25,7 @@ void IzSQLTableView::QmlPlugin::registerTypes(const char* uri)
 	qmlRegisterType<IzSQLUtilities::SQLTableModel>(uri, 1, 0, "IzSQLTableModel");
 	qmlRegisterType<IzSQLTableView::SQLTableViewImpl>(uri, 1, 0, "SQLTableViewImpl");
 	qmlRegisterType(QUrl(QStringLiteral("qrc:/include/IzSQLTableView/QML/IzSQLTableView.qml")), "IzSQLTableView", 1, 0, "IzSQLTableView");
+
 	qmlRegisterUncreatableMetaObject(IzSQLTableView::staticMetaObject,
 									 uri,
 									 1,

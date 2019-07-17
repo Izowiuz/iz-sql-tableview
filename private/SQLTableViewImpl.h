@@ -132,6 +132,14 @@ namespace IzSQLTableView
 		// list of hidden columns
 		Q_PROPERTY(QStringList hiddenColumns READ hiddenColumns WRITE setHiddenColumns NOTIFY hiddenColumnsChanged FINAL)
 
+		// current type of database connection
+		// pass through to AbstarctSQLModel
+		Q_PROPERTY(QString databaseType READ databaseType WRITE setDatabaseType NOTIFY databaseTypeChanged FINAL)
+
+		// current connection parameters - empty parameters = parameter are read from dynamic properties of qApp
+		// pass through to AbstarctSQLModel
+		Q_PROPERTY(QVariantMap connectionParameters READ connectionParameters WRITE setConnectionParameters NOTIFY connectionParametersChanged FINAL)
+
 	public:
 		// ctor
 		explicit SQLTableViewImpl(QQuickItem* parent = nullptr);
@@ -312,6 +320,14 @@ namespace IzSQLTableView
 		QStringList hiddenColumns() const;
 		void setHiddenColumns(const QStringList& hiddenColumns);
 
+		// connectionParameters setter / getter
+		QVariantMap connectionParameters() const;
+		void setConnectionParameters(const QVariantMap& connectionParameters);
+
+		// m_databaseType setter / getter
+		QString databaseType() const;
+		void setDatabaseType(const QString& databaseType);
+
 		// QQuickItem interface start
 
 		void classBegin() override;
@@ -442,6 +458,9 @@ namespace IzSQLTableView
 		// hidden columns
 		QStringList m_hiddenColumns;
 
+		// current databaseType
+		QString m_databaseType;
+
 	signals:
 		// Q_PROPERTY changed signals
 		void selectionModeChanged();
@@ -474,6 +493,8 @@ namespace IzSQLTableView
 		void cellColorProviderChanged();
 		void cellDelegateProviderChanged();
 		void hiddenColumnsChanged();
+		void databaseTypeChanged();
+		void connectionParametersChanged();
 
 		// emited when table layout has to be recalculated
 		void relayout();
