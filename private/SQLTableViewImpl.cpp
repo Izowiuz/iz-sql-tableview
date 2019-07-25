@@ -90,7 +90,7 @@ IzSQLTableView::SQLTableViewImpl::SQLTableViewImpl(QQuickItem* parent)
 		emit loadedRowsChanged();
 	});
 
-	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::databaseTypeChanged, this, &SQLTableViewImpl::databaseTypeChanged);
+	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::databaseTypeChanged, this, &SQLTableViewImpl::databaseNameChanged);
 
 	connect(m_model->source(), &IzSQLUtilities::SQLTableModel::connectionParametersChanged, this, &SQLTableViewImpl::connectionParametersChanged);
 
@@ -579,25 +579,14 @@ void IzSQLTableView::SQLTableViewImpl::setConnectionParameters(const QVariantMap
 	return m_model->source()->setConnectionParameters(connectionParameters);
 }
 
-QString IzSQLTableView::SQLTableViewImpl::databaseType() const
+QString IzSQLTableView::SQLTableViewImpl::databaseName() const
 {
-	return m_databaseType;
+	return m_model->source()->databaseName();
 }
 
-void IzSQLTableView::SQLTableViewImpl::setDatabaseType(const QString &databaseType)
+void IzSQLTableView::SQLTableViewImpl::setDatabaseName(const QString &databaseName)
 {
-	if (databaseType == QStringLiteral("MSSQL")) {
-		m_databaseType = databaseType;
-		m_model->source()->setDatabaseType(IzSQLUtilities::DatabaseType::MSSQL);
-	} else if (databaseType == QStringLiteral("PSQL")) {
-		m_databaseType = databaseType;
-		m_model->source()->setDatabaseType(IzSQLUtilities::DatabaseType::PSQL);
-	} else if (databaseType == QStringLiteral("SQLITE")) {
-		m_databaseType = databaseType;
-		m_model->source()->setDatabaseType(IzSQLUtilities::DatabaseType::SQLITE);
-	} else {
-		qWarning() << "Got invalid database type:" << databaseType;
-	}
+	m_model->source()->setDatabaseName(databaseName);
 }
 
 QJSValue IzSQLTableView::SQLTableViewImpl::cellDelegateProvider() const
